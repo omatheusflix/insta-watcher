@@ -3,8 +3,8 @@
 Every failure surfaces as NotSent, AmbiguousFailure or ConfirmedRejection (app.meta.errors).
 """
 
-from dataclasses import dataclass
 import hashlib
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -101,7 +101,10 @@ class MetaClient:
             effective_path = ig_user_id if path == "me" else f"{ig_user_id}/{path[3:]}"
             if effective_params and "fields" in effective_params and path == "me":
                 effective_params["fields"] = effective_params["fields"].replace("user_id", "id")
-        url = f"{host}/{self._version}/{effective_path}" if versioned else f"{host}/{effective_path}"
+        if versioned:
+            url = f"{host}/{self._version}/{effective_path}"
+        else:
+            url = f"{host}/{effective_path}"
         headers = {"Authorization": f"Bearer {token}"} if auth_header else {}
         try:
             response = await self._http.request(
@@ -125,9 +128,10 @@ class MetaClient:
             raise classify_error_response(response.status_code, body)
         if not isinstance(body, dict):
             raise AmbiguousFailure(f"http {response.status_code} with a non-JSON body")
-        if unified and path == "me" and "id" in body and "user_id" not in body:
-            body = {**body, "user_id": body["id"]}
-        return body
+        typed_body: dict[str, Any] = body
+        if unified and path == "me" and "id" in typed_body and "user_id" not in typed_body:
+            return {**typed_body, "user_id": typed_body["id"]}
+        return typed_body
 
     async def me(self, token: str) -> dict[str, Any]:
         if is_unified_token(token):

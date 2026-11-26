@@ -174,7 +174,11 @@ async def test_unified_token_uses_fb_graph_and_resolves_ig_user_id(meta: MetaCli
         return_value=httpx.Response(200, json={"message_id": "m_unified"})
     )
     me = await meta.me(eaa)
-    assert me == {"user_id": "17841400000000001", "username": "testuser", "account_type": "BUSINESS"}
+    assert me == {
+        "user_id": "17841400000000001",
+        "username": "testuser",
+        "account_type": "BUSINESS",
+    }
     msg_id = await meta.send_private_reply(eaa, "c_9", "oi")
     assert msg_id == "m_unified"
     assert send_route.called
