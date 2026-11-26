@@ -254,6 +254,7 @@ def _campaign_out(campaign: Campaign, counts: DeliveryCounts | None) -> Campaign
         link_button_label=campaign.link_button_label,
         follow_gate_enabled=campaign.follow_gate_enabled,
         follow_gate_message=campaign.follow_gate_message,
+        follow_gate_reminder_message=campaign.follow_gate_reminder_message,
         follow_gate_button_label=campaign.follow_gate_button_label,
         public_reply_messages=list(campaign.public_reply_messages),
         created_at=campaign.created_at,

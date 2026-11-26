@@ -493,6 +493,21 @@ export function CampaignForm(props: Props) {
                   )}
                 </Field>
                 <Field
+                  label={t.gateReminderMessage}
+                  hint={`${t.gateReminderHint} ${form.followGateReminderMessage.length}/${limits.gate_message_max}`}
+                  error={errors.follow_gate_reminder_message}
+                >
+                  {(p) => (
+                    <textarea
+                      {...p}
+                      rows={3}
+                      value={form.followGateReminderMessage}
+                      onChange={(e) => set("followGateReminderMessage", e.target.value)}
+                      className={inputClass}
+                    />
+                  )}
+                </Field>
+                <Field
                   label={t.gateButton}
                   hint={t.gateButtonHint}
                   error={errors.follow_gate_button_label}

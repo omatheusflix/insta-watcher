@@ -167,6 +167,7 @@ class Campaign(Base):
         Boolean, default=False, server_default=false()
     )
     follow_gate_message: Mapped[str | None] = mapped_column(Text)
+    follow_gate_reminder_message: Mapped[str | None] = mapped_column(Text)
     follow_gate_button_label: Mapped[str | None] = mapped_column(String(20))
     keywords: Mapped[list[str]] = mapped_column(JSON)
     match_mode: Mapped[str] = mapped_column(String(16), default=MatchMode.WHOLE_WORD)

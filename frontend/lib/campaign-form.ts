@@ -19,6 +19,7 @@ export type CampaignForm = {
   buttonLabel: string;
   followGateEnabled: boolean;
   followGateMessage: string;
+  followGateReminderMessage: string;
   followGateButtonLabel: string;
   publicReplies: string[];
 };
@@ -37,6 +38,7 @@ export const emptyForm: CampaignForm = {
   buttonLabel: "",
   followGateEnabled: false,
   followGateMessage: messages.builder.gateDefaultMessage,
+  followGateReminderMessage: messages.builder.gateDefaultReminderMessage,
   followGateButtonLabel: messages.builder.gateDefaultButton,
   publicReplies: [],
 };
@@ -56,6 +58,8 @@ export function fromCampaign(campaign: Campaign): CampaignForm {
     buttonLabel: campaign.link_button_label ?? "",
     followGateEnabled: campaign.follow_gate_enabled,
     followGateMessage: campaign.follow_gate_message ?? messages.builder.gateDefaultMessage,
+    followGateReminderMessage:
+      campaign.follow_gate_reminder_message ?? messages.builder.gateDefaultReminderMessage,
     followGateButtonLabel:
       campaign.follow_gate_button_label ?? messages.builder.gateDefaultButton,
     publicReplies: [...campaign.public_reply_messages],
@@ -83,6 +87,9 @@ export function toPayload(form: CampaignForm): Omit<CampaignPayload, "is_active"
     // The invite only exists while the gate is on. The API clears it otherwise, and so do we.
     follow_gate_enabled: form.followGateEnabled,
     follow_gate_message: form.followGateEnabled ? form.followGateMessage.trim() : null,
+    follow_gate_reminder_message: form.followGateEnabled
+      ? form.followGateReminderMessage.trim() || null
+      : null,
     follow_gate_button_label: form.followGateEnabled
       ? form.followGateButtonLabel.trim() || null
       : null,
@@ -126,6 +133,9 @@ export function validateForm(form: CampaignForm, limits: Limits): FormErrors {
       errors.follow_gate_message = "Escreva a mensagem de convite.";
     } else if (form.followGateMessage.trim().length > limits.gate_message_max) {
       errors.follow_gate_message = `O convite aceita até ${limits.gate_message_max} caracteres.`;
+    }
+    if (form.followGateReminderMessage.trim().length > limits.gate_message_max) {
+      errors.follow_gate_reminder_message = `O lembrete aceita até ${limits.gate_message_max} caracteres.`;
     }
     if (form.followGateButtonLabel.trim().length > limits.button_title_max) {
       errors.follow_gate_button_label = `O botão aceita até ${limits.button_title_max} caracteres.`;

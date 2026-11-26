@@ -855,6 +855,8 @@ export interface components {
             follow_gate_enabled: boolean;
             /** Follow Gate Message */
             follow_gate_message?: string | null;
+            /** Follow Gate Reminder Message */
+            follow_gate_reminder_message?: string | null;
             /** Follow Gate Button Label */
             follow_gate_button_label?: string | null;
             /** Public Reply Messages */
@@ -896,6 +898,8 @@ export interface components {
             follow_gate_enabled: boolean;
             /** Follow Gate Message */
             follow_gate_message: string | null;
+            /** Follow Gate Reminder Message */
+            follow_gate_reminder_message: string | null;
             /** Follow Gate Button Label */
             follow_gate_button_label: string | null;
             /** Public Reply Messages */
@@ -942,6 +946,8 @@ export interface components {
             follow_gate_enabled?: boolean | null;
             /** Follow Gate Message */
             follow_gate_message?: string | null;
+            /** Follow Gate Reminder Message */
+            follow_gate_reminder_message?: string | null;
             /** Follow Gate Button Label */
             follow_gate_button_label?: string | null;
             /** Public Reply Messages */

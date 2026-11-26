@@ -96,6 +96,7 @@ class CampaignOut(BaseModel):
     link_button_label: str | None
     follow_gate_enabled: bool
     follow_gate_message: str | None
+    follow_gate_reminder_message: str | None
     follow_gate_button_label: str | None
     public_reply_messages: list[str]
     created_at: datetime
@@ -121,6 +122,7 @@ class CampaignPatch(BaseModel):
     link_button_label: str | None = None
     follow_gate_enabled: bool | None = None
     follow_gate_message: str | None = None
+    follow_gate_reminder_message: str | None = None
     follow_gate_button_label: str | None = None
     public_reply_messages: list[str] | None = None
     is_active: bool | None = None

@@ -56,6 +56,9 @@ class CampaignInput(BaseModel):
     )
     follow_gate_enabled: bool = False
     follow_gate_message: str | None = Field(default=None, max_length=GATE_MESSAGE_MAX_CHARS)
+    follow_gate_reminder_message: str | None = Field(
+        default=None, max_length=GATE_MESSAGE_MAX_CHARS
+    )
     follow_gate_button_label: str | None = Field(
         default=None, min_length=1, max_length=BUTTON_TITLE_MAX_CHARS
     )
@@ -106,6 +109,9 @@ class CampaignInput(BaseModel):
             if not (self.follow_gate_message or "").strip():
                 raise ValueError("the follow gate needs an invite message")
             self.follow_gate_message = (self.follow_gate_message or "").strip()
+            self.follow_gate_reminder_message = (
+                self.follow_gate_reminder_message or ""
+            ).strip() or None
             self.follow_gate_button_label = (
                 self.follow_gate_button_label or DEFAULT_BUTTON_LABEL
             ).strip()
@@ -134,6 +140,9 @@ def _apply(campaign: Campaign, data: CampaignInput) -> None:
     # The invite only exists while the gate is on, so switching it off clears a stale text.
     campaign.follow_gate_enabled = data.follow_gate_enabled
     campaign.follow_gate_message = data.follow_gate_message if data.follow_gate_enabled else None
+    campaign.follow_gate_reminder_message = (
+        data.follow_gate_reminder_message if data.follow_gate_enabled else None
+    )
     campaign.follow_gate_button_label = (
         data.follow_gate_button_label if data.follow_gate_enabled else None
     )
@@ -157,6 +166,7 @@ def as_input(campaign: Campaign) -> dict[str, Any]:
         "link_button_label": campaign.link_button_label,
         "follow_gate_enabled": campaign.follow_gate_enabled,
         "follow_gate_message": campaign.follow_gate_message,
+        "follow_gate_reminder_message": campaign.follow_gate_reminder_message,
         "follow_gate_button_label": campaign.follow_gate_button_label,
         "public_reply_messages": list(campaign.public_reply_messages),
         "is_active": campaign.is_active,

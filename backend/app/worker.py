@@ -442,11 +442,14 @@ class Worker:
         assert ctx.token is not None  # noqa: S101
         assert delivery.gate_user_id is not None  # noqa: S101
         _, button = gate_invite_content(ctx.campaign, delivery.actor_username, delivery.id)
-        name_part = f" @{delivery.actor_username}" if delivery.actor_username else ""
-        text = (
-            f"Opa{name_part}, ainda não apareceu aqui que você tá me seguindo 👀 "
-            "Tem certeza? Segue a conta e clica no botão abaixo pra liberar!"
-        )
+        if ctx.campaign.follow_gate_reminder_message:
+            text = render(ctx.campaign.follow_gate_reminder_message, delivery.actor_username)
+        else:
+            name_part = f" @{delivery.actor_username}" if delivery.actor_username else ""
+            text = (
+                f"Opa{name_part}, ainda não apareceu aqui que você tá me seguindo 👀 "
+                "Tem certeza? Segue a conta e clica no botão abaixo pra liberar!"
+            )
         try:
             await self._meta.send_message(ctx.token, delivery.gate_user_id, text, button)
         except MetaError as exc:
