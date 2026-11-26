@@ -111,6 +111,7 @@ function campaign(overrides: Partial<Campaign> = {}): Campaign {
     link_button_label: null,
     follow_gate_enabled: false,
     follow_gate_message: null,
+    follow_gate_reminder_message: null,
     follow_gate_button_label: null,
     public_reply_messages: [],
     created_at: "2026-10-01T00:00:00Z",

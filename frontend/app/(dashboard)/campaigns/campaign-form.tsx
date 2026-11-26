@@ -46,6 +46,7 @@ const ERROR_KEY: Record<keyof FormState, string> = {
   buttonLabel: "link_button_label",
   followGateEnabled: "follow_gate_enabled",
   followGateMessage: "follow_gate_message",
+  followGateReminderMessage: "follow_gate_reminder_message",
   followGateButtonLabel: "follow_gate_button_label",
   publicReplies: "public_reply_messages",
 };

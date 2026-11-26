@@ -114,6 +114,7 @@ describe("follow gate in the campaign form", () => {
       link_button_label: "Abrir",
       follow_gate_enabled: true,
       follow_gate_message: "Segue!",
+      follow_gate_reminder_message: null,
       follow_gate_button_label: "Pronto",
       public_reply_messages: [],
       created_at: "2026-10-02T00:00:00Z",
