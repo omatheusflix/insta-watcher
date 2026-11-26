@@ -15,11 +15,11 @@ PAYLOAD_PREFIX = "bw:gate:"
 _PAYLOAD = re.compile(r"^bw:gate:(\d{1,9})$")
 
 # After a tap that finds the person not following: check again after each of these waits.
-RECHECK_DELAYS = (timedelta(seconds=20), timedelta(seconds=40))
+RECHECK_DELAYS = (timedelta(seconds=5),)
 CHECKS_PER_TAP = 1 + len(RECHECK_DELAYS)
 
 # A person who keeps tapping without following gets asked this many times, then nothing more.
-MAX_TAPS = 5
+MAX_TAPS = 10
 
 # The profile lookup itself failed (network, Meta outage). Try again before deciding.
 CHECK_RETRY_DELAYS = (timedelta(seconds=15), timedelta(seconds=60), timedelta(minutes=5))

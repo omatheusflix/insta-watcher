@@ -19,7 +19,7 @@ from app.dispatcher import (
     enqueue_gate_tap,
     parse_postbacks,
 )
-from app.gate import CHECK_RETRY_DELAYS, MAX_TAPS, RECHECK_DELAYS, gate_payload
+from app.gate import CHECK_RETRY_DELAYS, CHECKS_PER_TAP, MAX_TAPS, RECHECK_DELAYS, gate_payload
 from app.maintenance import apply_retention
 from app.matching import KeywordMatcher
 from app.meta.client import GRAPH_HOST, MetaClient
@@ -586,13 +586,13 @@ async def test_still_not_following_after_the_last_look_asks_again_and_waits_for_
     delivery = await invited(ready, settings, meta)
 
     await tap(ready, delivery.id)
-    for _ in range(3):  # three looks: now, +20 s, +40 s
+    for _ in range(CHECKS_PER_TAP):
         await run_all(ready, settings, meta)
         await make_due(ready)
     await run_all(ready, settings, meta)
 
     delivery = await delivery_of(ready)
-    assert follow_calls(profile) == 3
+    assert follow_calls(profile) == CHECKS_PER_TAP
     assert delivery.gate_state == GateState.REMINDED
     assert delivery.followup_status is None
     # The invite and one reminder, with the same button and never the link.
