@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import Settings
 from app.db import utcnow
-from app.meta.client import MetaClient
+from app.meta.client import MetaClient, is_unified_token
 from app.meta.errors import ConfirmedRejection, MetaError, RejectionKind
 from app.meta.limits import TOKEN_LIFETIME_ASSUMED, TOKEN_MIN_AGE_FOR_REFRESH
 from app.models import Account, AccountStatus
@@ -97,9 +97,14 @@ async def set_account_token(
         account.username = username
         account.token_encrypted = blob
         account.token_set_at = now
-        # Real lifetime is learned on the first refresh (allowed once the token is 24 h old).
-        account.token_expires_at = now + TOKEN_LIFETIME_ASSUMED
-        account.token_expiry_confirmed = False
+        if is_unified_token(token):
+            # Unified Login SUAT tokens do not expire and do not use ig_refresh_token.
+            account.token_expires_at = None
+            account.token_expiry_confirmed = True
+        else:
+            # Real lifetime is learned on the first refresh (allowed once the token is 24 h old).
+            account.token_expires_at = now + TOKEN_LIFETIME_ASSUMED
+            account.token_expiry_confirmed = False
         account.token_refreshed_at = None
         account.token_refresh_attempted_at = None
         account.status = AccountStatus.ACTIVE
@@ -122,6 +127,8 @@ def refresh_due(account: Account, settings: Settings, now: datetime) -> bool:
     last_try = account.token_refresh_attempted_at
     if last_try is not None and now - last_try < timedelta(hours=24):
         return False
+    if account.token_expiry_confirmed and account.token_expires_at is None:
+        return False
     if not account.token_expiry_confirmed or account.token_expires_at is None:
         return True  # learn the real lifetime as soon as Meta allows a refresh
     return account.token_expires_at - now <= timedelta(days=settings.token_refresh_when_days)
@@ -140,7 +147,7 @@ async def refresh_token_if_due(
         if loaded is None:
             return False
         account, token = loaded
-        if not refresh_due(account, settings, now):
+        if is_unified_token(token) or not refresh_due(account, settings, now):
             return False
         account.token_refresh_attempted_at = now
     try:

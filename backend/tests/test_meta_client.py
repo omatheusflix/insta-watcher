@@ -5,7 +5,7 @@ import httpx
 import pytest
 import respx
 
-from app.meta.client import GRAPH_HOST, LinkButton, MetaClient
+from app.meta.client import FB_GRAPH_HOST, GRAPH_HOST, LinkButton, MetaClient
 from app.meta.errors import (
     AmbiguousFailure,
     ConfirmedRejection,
@@ -160,3 +160,21 @@ async def test_list_comments_paginates(meta: MetaClient) -> None:
     comments, cursor = await meta.list_comments(TOKEN, "media_1")
     assert comments == [{"id": "c1"}]
     assert cursor == "CUR"
+
+
+@respx.mock
+async def test_unified_token_uses_fb_graph_and_resolves_ig_user_id(meta: MetaClient) -> None:
+    eaa = "EAAtestunified0123456789"
+    respx.get(f"{FB_GRAPH_HOST}/v25.0/me/assigned_instagram_accounts").mock(
+        return_value=httpx.Response(
+            200, json={"data": [{"id": "17841400000000001", "username": "testuser"}]}
+        )
+    )
+    send_route = respx.post(f"{FB_GRAPH_HOST}/v25.0/17841400000000001/messages").mock(
+        return_value=httpx.Response(200, json={"message_id": "m_unified"})
+    )
+    me = await meta.me(eaa)
+    assert me == {"user_id": "17841400000000001", "username": "testuser", "account_type": "BUSINESS"}
+    msg_id = await meta.send_private_reply(eaa, "c_9", "oi")
+    assert msg_id == "m_unified"
+    assert send_route.called

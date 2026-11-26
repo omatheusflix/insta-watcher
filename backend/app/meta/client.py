@@ -4,6 +4,7 @@ Every failure surfaces as NotSent, AmbiguousFailure or ConfirmedRejection (app.m
 """
 
 from dataclasses import dataclass
+import hashlib
 from typing import Any
 
 import httpx
@@ -11,11 +12,17 @@ import httpx
 from app.meta.errors import AmbiguousFailure, NotSent, classify_error_response
 
 GRAPH_HOST = "https://graph.instagram.com"
+FB_GRAPH_HOST = "https://graph.facebook.com"
 # Webhook fields the account is subscribed to. messaging_postbacks carries the tap on a
 # postback button (the follow gate), and is delivered only if both the app and the account
 # are subscribed to it.
 SUBSCRIBED_FIELDS = "comments,messages,messaging_postbacks"
 DEFAULT_TIMEOUT = httpx.Timeout(20.0, connect=5.0)
+
+
+def is_unified_token(token: str) -> bool:
+    """Unified Login (SUAT) tokens start with EAA and hit graph.facebook.com."""
+    return token.startswith("EAA")
 
 
 @dataclass(frozen=True)
@@ -54,6 +61,23 @@ class MetaClient:
     def __init__(self, http: httpx.AsyncClient, api_version: str) -> None:
         self._http = http
         self._version = api_version
+        self._ig_user_ids: dict[str, str] = {}
+
+    @staticmethod
+    def _token_key(token: str) -> str:
+        return hashlib.sha256(token.encode()).hexdigest()
+
+    async def _resolve_ig_user_id(self, token: str) -> str:
+        key = self._token_key(token)
+        cached = self._ig_user_ids.get(key)
+        if cached:
+            return cached
+        me = await self.me(token)
+        ig_user_id = str(me.get("user_id") or "")
+        if not ig_user_id:
+            raise AmbiguousFailure("could not resolve Instagram user id for unified token")
+        self._ig_user_ids[key] = ig_user_id
+        return ig_user_id
 
     async def _request(
         self,
@@ -66,11 +90,27 @@ class MetaClient:
         versioned: bool = True,
         auth_header: bool = True,
     ) -> dict[str, Any]:
-        url = f"{GRAPH_HOST}/{self._version}/{path}" if versioned else f"{GRAPH_HOST}/{path}"
+        unified = is_unified_token(token)
+        host = FB_GRAPH_HOST if unified else GRAPH_HOST
+        effective_path = path
+        effective_params = dict(params) if params is not None else None
+        if unified and (path == "me" or path.startswith("me/")) and not path.startswith(
+            ("me/assigned_instagram_accounts", "me/accounts")
+        ):
+            ig_user_id = await self._resolve_ig_user_id(token)
+            effective_path = ig_user_id if path == "me" else f"{ig_user_id}/{path[3:]}"
+            if effective_params and "fields" in effective_params and path == "me":
+                effective_params["fields"] = effective_params["fields"].replace("user_id", "id")
+        url = f"{host}/{self._version}/{effective_path}" if versioned else f"{host}/{effective_path}"
         headers = {"Authorization": f"Bearer {token}"} if auth_header else {}
         try:
             response = await self._http.request(
-                method, url, json=json, params=params, headers=headers, timeout=DEFAULT_TIMEOUT
+                method,
+                url,
+                json=json,
+                params=effective_params,
+                headers=headers,
+                timeout=DEFAULT_TIMEOUT,
             )
         except (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout) as exc:
             raise NotSent(f"connection failed: {type(exc).__name__}") from None
@@ -85,9 +125,41 @@ class MetaClient:
             raise classify_error_response(response.status_code, body)
         if not isinstance(body, dict):
             raise AmbiguousFailure(f"http {response.status_code} with a non-JSON body")
+        if unified and path == "me" and "id" in body and "user_id" not in body:
+            body = {**body, "user_id": body["id"]}
         return body
 
     async def me(self, token: str) -> dict[str, Any]:
+        if is_unified_token(token):
+            body = await self._request(
+                "GET",
+                "me/assigned_instagram_accounts",
+                token,
+                params={"fields": "id,username"},
+            )
+            accounts = list(body.get("data") or [])
+            acct: dict[str, Any] | None = accounts[0] if accounts else None
+            if acct is None:
+                pages = await self._request(
+                    "GET",
+                    "me/accounts",
+                    token,
+                    params={"fields": "instagram_business_account{id,username}"},
+                )
+                for page in pages.get("data") or []:
+                    ig_biz = page.get("instagram_business_account")
+                    if isinstance(ig_biz, dict) and ig_biz.get("id"):
+                        acct = ig_biz
+                        break
+            if acct is None or not acct.get("id"):
+                return {}
+            ig_id = str(acct["id"])
+            self._ig_user_ids[self._token_key(token)] = ig_id
+            return {
+                "user_id": ig_id,
+                "username": str(acct.get("username") or ""),
+                "account_type": "BUSINESS",
+            }
         return await self._request(
             "GET", "me", token, params={"fields": "user_id,username,account_type"}
         )
